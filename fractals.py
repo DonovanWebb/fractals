@@ -8,6 +8,7 @@ import PIL.Image
 from io import BytesIO
 from IPython.display import Image, display
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 import time
 import imageio
 
@@ -26,8 +27,12 @@ def DisplayFractal(a, b, iterations, i ):
     plt.gca().set_position([0, 0, 1, 1])
     #plt.savefig('bg_fract.png', dpi=1000)
 
-def main(order, iterations, step):
+def make_fractal(order, iterations, step, positions=[-2, 1, -2.5, 2.5]):
 
+    xmin = positions[0]
+    xmax = positions[1]
+    ymin = positions[2]
+    ymax = positions[3]
 
     start = time.time()
 
@@ -35,7 +40,7 @@ def main(order, iterations, step):
 
     # Use NumPy to create a 2D array of complex numbers
 
-    X, Y = np.mgrid[-2:1:step, -2.5:2.5:step]
+    X, Y = np.mgrid[xmin:xmax:step, ymin:ymax:step]
     Z = X+1j*Y
 
     xs = tf.constant(Z.astype(np.complex64))
@@ -47,7 +52,7 @@ def main(order, iterations, step):
     # Compute the new values of z: z^2 + x
     # zs_ = (zs - ((zs**order-1) / (order*zs**(order-1)))) # Basic
     # zs_ = (zs - ((zs**order-1) / (order*zs**(order-2)))) # NICE ONE
-    zs_ = (zs - ((zs**order-1) / (order*zs**(order-2))))
+    zs_ = (zs - ((zs**order-1) / (order*zs**(order-4))))
 
     # Have we diverged with this new value?
     not_diverged = tf.abs(zs_) < 4
@@ -77,10 +82,39 @@ def main(order, iterations, step):
     return zs_.eval(), ns.eval()
     #DisplayFractal(ns.eval())
 
-for i in range(500,530):
+def update_plot(frame, data, sc):
+    sc.set_data(data[frame])
+    return sc
+
+def main():
+
     iterations = 100
     # 0.005 takes ~5 seconds
-    step = 0.005
-    zs, ns = main(i/100, iterations, step)
-    DisplayFractal(zs, ns, iterations, i)
-plt.show()
+    step = 0.010
+    positions = [-2, 2, -3, 3]
+    frames = 50
+    image_size_x = int(-(positions[0]-positions[1])/step)
+    image_size_y = int(-(positions[2]-positions[3])/step)
+
+    data = np.ones(image_size_x * image_size_y * frames * 2)
+    data = data.reshape(frames*2, image_size_x, image_size_y)
+    for i in range(frames):
+        print(i)
+        power = (400+i*10)/100
+        zs, ns = make_fractal(power, iterations, step, positions)
+        # DisplayFractal(zs, ns, iterations, i)
+        # data[i] = iterations - ns
+        # data[-(i+1)] = iterations - ns
+        a = (np.real(zs) + 2*np.imag(zs)) + np.clip((iterations-ns), 0, 20)/10
+        data[i] = a
+        data[-(i+1)] = a
+
+    fig = plt.figure()
+    plt.axis('off')
+    ax = fig.add_subplot()
+    #sc = ax.imshow(data[0], cmap='inferno')
+    sc = ax.imshow(data[0], cmap='viridis')
+    ani = FuncAnimation(fig, update_plot, frames=frames*2, fargs=(data,sc), interval=150)
+    plt.show()
+
+main()
