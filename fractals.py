@@ -92,15 +92,15 @@ def main():
     # 0.005 takes ~5 seconds
     step = 0.010
     positions = [-2, 2, -3, 3]
-    frames = 50
+    frames = 50 # change to arange
     image_size_x = int(-(positions[0]-positions[1])/step)
     image_size_y = int(-(positions[2]-positions[3])/step)
 
     data = np.ones(image_size_x * image_size_y * frames * 2)
     data = data.reshape(frames*2, image_size_x, image_size_y)
-    for i in range(frames):
+    for i in range(frames): # change to arange
         print(i)
-        power = (400+i*10)/100
+        power = (400+i*10)/100  # change to arange
         zs, ns = make_fractal(power, iterations, step, positions)
         # DisplayFractal(zs, ns, iterations, i)
         # data[i] = iterations - ns
